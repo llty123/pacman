@@ -25,6 +25,7 @@ protected:
 public:
 	void DrawMap(HDC& hdc);//绘制地图
 	void DrawPeas(HDC& hdc);//绘制豆子
+	int score=0;//得分
 	//virtual ~Gmap();
 	Gmap()
 	{
@@ -44,6 +45,17 @@ private:
 
 public:
 	Stage_1();
+};
+
+//第二关
+class Stage_2 :public Gmap
+{
+private:
+	bool static initData[MAPLENTH][MAPLENTH];
+
+
+public:
+	Stage_2();
 };
 
 

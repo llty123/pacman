@@ -39,11 +39,11 @@ INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
 //        在此函数中，我们在全局变量中保存实例句柄并
 //        创建和显示主程序窗口。
 //
-BOOL InitInstance(HINSTANCE hInstance, int nCmdShow, HWND &hWnd)
+BOOL InitInstance(HINSTANCE hInstance, int nCmdShow, HWND& hWnd)
 {
     hInst = hInstance; // 将实例句柄存储在全局变量中
 
-     hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
+    hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
         CW_USEDEFAULT, 0, 1000, 1000, nullptr, nullptr, hInstance, nullptr);//6、7个参数表示窗口横向、纵向大小
 
     if (!hWnd)
@@ -76,9 +76,9 @@ void Realese(T t)
 
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
-                     _In_opt_ HINSTANCE hPrevInstance,
-                     _In_ LPWSTR    lpCmdLine,
-                     _In_ int       nCmdShow)
+    _In_opt_ HINSTANCE hPrevInstance,
+    _In_ LPWSTR    lpCmdLine,
+    _In_ int       nCmdShow)
 {
     UNREFERENCED_PARAMETER(hPrevInstance);
     UNREFERENCED_PARAMETER(lpCmdLine);
@@ -93,62 +93,78 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     Gmap* MapArray[STAGE_COUNT] = { new Stage_1(),new Stage_1(), new Stage_1() };//存储关卡地图
     Gobject::pStage = MapArray[s_n];
     Enermy::player = p;//敌人追踪的玩家为p
-    TCHAR score[] = _T("score：");
-
+    TCHAR score[] = _T("score:");
+    TCHAR tip[] = _T("提示：");
+    TCHAR tip_1[] = _T("键盘“↑”控制向上运动");
+    TCHAR tip_2[] = _T("键盘“↓”控制向下运动");
+    TCHAR tip_3[] = _T("键盘“←”控制向左运动");
+    TCHAR tip_4[] = _T("键盘“→”控制向右运动");
+    TCHAR score_i[2] = { 0 };//存储分数值
+    TCHAR time[] = _T("time:") ;//存储时间
+    TCHAR time_s[] = _T("s");
+    TCHAR time_i[10] = { 0 };
+    DWORD t = 0;
+    int Time;
     // 初始化全局字符串
     LoadStringW(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
     LoadStringW(hInstance, IDC_MY, szWindowClass, MAX_LOADSTRING);
     MyRegisterClass(hInstance);
 
     // 执行应用程序初始化:
-    DWORD t=0;
-    HWND hWnd;
     
-    if (!InitInstance (hInstance, nCmdShow,hWnd))
+    HWND hWnd;
+
+    if (!InitInstance(hInstance, nCmdShow, hWnd))
     {
         return FALSE;
     }
-
+    DWORD StartTime = GetTickCount64();//计时开始
     HDC hdc = GetDC(hWnd);
     Gobject::pStage->DrawMap(hdc);//绘制地图
-    
+    TextOut(hdc, 700, 570, tip, _tcslen(tip));
+    TextOut(hdc, 700, 600, tip_1, _tcslen(tip_1));
+    TextOut(hdc, 700, 630, tip_2, _tcslen(tip_2));
+    TextOut(hdc, 700, 660, tip_3, _tcslen(tip_3));
+    TextOut(hdc, 700, 690, tip_4, _tcslen(tip_4));
     HACCEL hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_MY));
 
     MSG msg;
-    
+
     // 主消息循环:
-    while (p->GetTw()!=OVER&&s_n<STAGE_COUNT)
+    while (p->GetTw() != OVER && s_n < STAGE_COUNT)
     {
         //HDC hdc = GetDC(hWnd);
-       
+        
         TextOut(hdc, 700, 0, score, _tcslen(score));//输出得分情况
+        wsprintf(score_i, _T("%d"), p->pStage->score);
+        TextOut(hdc, 750, 0, score_i, _tcslen(score_i));//输出得分情况
         if (p->Win())//玩家胜利
         {
-            
+
             s_n++;
             ResetGobjects();
             if (s_n < STAGE_COUNT)
             {
-                MessageBoxA(hWnd , "恭喜过关！","吃豆子提示",MB_OKA);
+                MessageBoxA(hWnd, "恭喜过关！", "吃豆子提示", MB_OKA);
                 Gobject::pStage = MapArray[++s_n];
                 RECT screenRect;
                 screenRect.top = 0;
                 screenRect.left = 0;
-                screenRect.right= WLENGTH;
+                screenRect.right = WLENGTH;
                 screenRect.bottom = WHIGHT;
                 ::FillRect(hdc, &screenRect, CreateSolidBrush(RGB(255, 255, 255)));
-               Gobject::pStage->DrawMap(hdc);
+                Gobject::pStage->DrawMap(hdc);
             }
             continue;
         }
-        if (PeekMessage(&msg,NULL,0,0,PM_REMOVE))
+        if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
         {
             TranslateMessage(&msg);
             DispatchMessage(&msg);
         }
-        
-        
-        if (GetAsyncKeyState(VK_UP)&0x8000)//w控制大嘴向上
+
+
+        if (GetAsyncKeyState(VK_UP) & 0x8000)//w控制大嘴向上
             p->SetTwCommands(UP);
         if (GetAsyncKeyState(VK_DOWN) & 0x8000)//s控制大嘴向下
             p->SetTwCommands(DOWN);
@@ -166,7 +182,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                 e3->action();
                 e4->action();
                 p->action();
-                
+
                 Gobject::pStage->DrawPeas(hdc);
                 e1->DrawBlank(hdc);
                 e2->DrawBlank(hdc);
@@ -183,6 +199,14 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
             }
         }
+        DWORD EndTime = GetTickCount64();//计时结束
+        TextOut(hdc, 700, 30, time, _tcslen(time));//输出用时情况
+        Time = (EndTime - StartTime) / 1000;
+        wsprintf(time_i, _T("%d"), Time);
+        TextOut(hdc, 740, 30, time_i, _tcslen(time_i));
+        TextOut(hdc, 770, 30, time_s, _tcslen(time_s));
+     
+
     }
 
     Realese(e1);
@@ -203,10 +227,10 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         MessageBoxA(hWnd, "恭喜你赢得胜利", "吃豆子提示", MB_OKA);
     }
     Realese(p);
-    
 
 
-    return (int) msg.wParam;
+
+    return (int)msg.wParam;
 }
 
 
@@ -222,17 +246,17 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
     wcex.cbSize = sizeof(WNDCLASSEX);
     //wcex.cbSize = 100;
 
-    wcex.style          = CS_HREDRAW | CS_VREDRAW;
-    wcex.lpfnWndProc    = WndProc;
-    wcex.cbClsExtra     = 0;
-    wcex.cbWndExtra     = 0;
-    wcex.hInstance      = hInstance;
-    wcex.hIcon          = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_MY));
-    wcex.hCursor        = LoadCursor(nullptr, IDC_ARROW);
-    wcex.hbrBackground  = (HBRUSH)(COLOR_WINDOW+1);
-    wcex.lpszMenuName   = MAKEINTRESOURCEW(IDC_MY);
-    wcex.lpszClassName  = szWindowClass;
-    wcex.hIconSm        = LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_SMALL));
+    wcex.style = CS_HREDRAW | CS_VREDRAW;
+    wcex.lpfnWndProc = WndProc;
+    wcex.cbClsExtra = 0;
+    wcex.cbWndExtra = 0;
+    wcex.hInstance = hInstance;
+    wcex.hIcon = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_MY));
+    wcex.hCursor = LoadCursor(nullptr, IDC_ARROW);
+    wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
+    wcex.lpszMenuName = MAKEINTRESOURCEW(IDC_MY);
+    wcex.lpszClassName = szWindowClass;
+    wcex.hIconSm = LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_SMALL));
 
     return RegisterClassExW(&wcex);
 }
@@ -254,30 +278,31 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     switch (message)
     {
     case WM_COMMAND:
+    {
+        int wmId = LOWORD(wParam);
+        // 分析菜单选择:
+        switch (wmId)
         {
-            int wmId = LOWORD(wParam);
-            // 分析菜单选择:
-            switch (wmId)
-            {
-            case IDM_ABOUT:
-                DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
-                break;
-            case IDM_EXIT:
-                DestroyWindow(hWnd);
-                break;
-            default:
-                return DefWindowProc(hWnd, message, wParam, lParam);
-            }
+        case IDM_ABOUT:
+            DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
+            break;
+        case IDM_EXIT:
+            DestroyWindow(hWnd);
+            break;
+        default:
+            return DefWindowProc(hWnd, message, wParam, lParam);
         }
-        break;
+    }
+    break;
     case WM_PAINT:
-        {
-            PAINTSTRUCT ps;
-            HDC hdc = BeginPaint(hWnd, &ps);
-            // TODO: 在此处添加使用 hdc 的任何绘图代码...
-            EndPaint(hWnd, &ps);
-        }
-        break;
+    {
+        PAINTSTRUCT ps;
+        HDC hdc = BeginPaint(hWnd, &ps);
+        // TODO: 在此处添加使用 hdc 的任何绘图代码...
+        
+        EndPaint(hWnd, &ps);
+    }
+    break;
     case WM_DESTROY:
         PostQuitMessage(0);
         ::exit(0);

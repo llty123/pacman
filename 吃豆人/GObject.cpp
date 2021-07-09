@@ -155,6 +155,11 @@ void PacMan::AchieveCtrl()//大嘴吃豆子函数实现
 			if (pStage->pea_map_data[dRow][dArray])//原来的地方有豆子
 			{
 				pStage->pea_map_data[dRow][dArray] = false;//将豆子标记改为”无“
+				pStage->score++;
+				PlaySound(TEXT("获取金币的游戏声音.wav"), NULL, SND_FILENAME| SND_ASYNC | SND_NODEFAULT | SND_NOSTOP);
+				//PlaySound(TEXT("play getcoin"), NULL, SND_FILENAME | SND_ASYNC);//开始播放bgm
+				//mciSendString(TEXT("close getcoin"), NULL, 0, NULL);//关闭bgm
+
 			}
 		}
 	}
