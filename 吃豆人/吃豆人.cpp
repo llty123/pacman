@@ -5,6 +5,7 @@
 #include "吃豆人.h"
 #include"GObject.h"
 #include"GMap.h"
+#include <atlstr.h>
 
 #define WLENGTH 3000
 #define WHIGHT 3000
@@ -57,6 +58,18 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow, HWND& hWnd)
     return TRUE;
 }
 
+bool IsPlaying()//判断是否在播放
+{
+   // char RefStr[10];
+    CString RefStr;
+    if (mciSendString(L"status bgm", RefStr.GetBuffer(10), 10, 0) == 0)
+    {
+        if (RefStr.Find(L"playing") >= 0 || RefStr.Find(L"播放") >= 0)
+            return true;
+    }
+    return false;
+}
+
 void ResetGobjects()
 {
     p->SetPosition(P_ROW, P_ARRAY);
@@ -105,6 +118,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     TCHAR time_i[10] = { 0 };
     DWORD t = 0;
     int Time;
+    
     // 初始化全局字符串
     LoadStringW(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
     LoadStringW(hInstance, IDC_MY, szWindowClass, MAX_LOADSTRING);
@@ -130,11 +144,52 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
     MSG msg;
 
+    
+    mciSendString(TEXT("open 游戏音乐.wma alias bgm"), NULL, 0, NULL);
+    mciSendString(TEXT("play bgm repeat"), NULL, 0, NULL);
+    //创建音乐播放控制按钮
+    CreateWindow(
+        TEXT("button"), TEXT("音乐暂停"),
+        WS_CHILD | WS_VISIBLE | BS_LEFT | BS_AUTOCHECKBOX/*复选框*/,
+        750, 400, 85, 26,
+        hWnd, (HMENU)9, hInst, NULL
+    );
+    //int state = IsDlgButtonChecked(hWnd, 9);//判断按钮选中状态
+    //if (state == BST_CHECKED)//按钮被选中
+    //{
+    //    TextOut(hdc, 300, 0, score, _tcslen(score));//输出得分情况
+    //}
+    //else if (state == BST_UNCHECKED)//按钮未被选中
+    //{
+    //    TextOut(hdc, 0, 0, score, _tcslen(score));//输出得分情况
+    //}
+    
+
     // 主消息循环:
     while (p->GetTw() != OVER && s_n < STAGE_COUNT)
     {
         //HDC hdc = GetDC(hWnd);
         
+
+        //int state = IsDlgButtonChecked(hWnd, 9);//判断按钮选中状态
+        //if (state == BST_CHECKED)//按钮被选中
+        //{
+        //    if (IsPlaying() == true)
+        //    {
+        //        continue;
+        //    }
+        //    else
+        //    {
+        //        mciSendString(TEXT("play bgm repeat"), NULL, 0, NULL);
+        //    }
+        //   
+        //    
+        //}
+        //else if (state == BST_UNCHECKED)//按钮未被选中
+        //{
+        //   mciSendString(TEXT("close bgm"), NULL, 0, NULL);
+        //}
+
         TextOut(hdc, 700, 0, score, _tcslen(score));//输出得分情况
         wsprintf(score_i, _T("%d"), p->pStage->score);
         TextOut(hdc, 750, 0, score_i, _tcslen(score_i));//输出得分情况
@@ -283,6 +338,30 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         // 分析菜单选择:
         switch (wmId)
         {
+        case 9:
+        {
+            int state = IsDlgButtonChecked(hWnd, 9);//判断按钮选中状态
+            if (state == BST_CHECKED)//按钮被选中
+            {
+                mciSendString(TEXT("pause bgm"), NULL, 0, NULL);
+                
+
+
+            }
+            else if (state == BST_UNCHECKED)//按钮未被选中
+            {
+                if (IsPlaying() == true)
+                {
+                    ;
+                }
+                else
+                {
+                    mciSendString(TEXT("play bgm repeat"), NULL, 0, NULL);
+                }
+            }
+            break;
+        }
+            
         case IDM_ABOUT:
             DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
             break;
