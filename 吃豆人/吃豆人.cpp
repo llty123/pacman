@@ -150,19 +150,11 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     //创建音乐播放控制按钮
     CreateWindow(
         TEXT("button"), TEXT("音乐暂停"),
-        WS_CHILD | WS_VISIBLE | BS_LEFT | BS_AUTOCHECKBOX/*复选框*/,
+        WS_CHILD | WS_VISIBLE | BS_LEFT | BS_AUTOCHECKBOX,
         750, 400, 85, 26,
         hWnd, (HMENU)9, hInst, NULL
     );
-    //int state = IsDlgButtonChecked(hWnd, 9);//判断按钮选中状态
-    //if (state == BST_CHECKED)//按钮被选中
-    //{
-    //    TextOut(hdc, 300, 0, score, _tcslen(score));//输出得分情况
-    //}
-    //else if (state == BST_UNCHECKED)//按钮未被选中
-    //{
-    //    TextOut(hdc, 0, 0, score, _tcslen(score));//输出得分情况
-    //}
+   
     
 
     // 主消息循环:
@@ -274,6 +266,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     }
     if (p->GetTw() == OVER)
     {
+        mciSendString(TEXT("close bgm "), NULL, 0, NULL);
+        mciSendString(TEXT("open 游戏失败音效.wma alias defeat"), NULL, 0, NULL);
+        mciSendString(TEXT("play defeat"), NULL, 0, NULL);
         MessageBoxA(hWnd, "出师未捷", "吃豆子提示", MB_OKA);
 
     }
