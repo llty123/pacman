@@ -130,37 +130,23 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
 	// 执行应用程序初始化:
 
-	//test
+	
 	const int BUFSIZE = 4096;
-	DWORD dwReadSize = 0;
-	char ch_buffer[BUFSIZE];//缓冲区
+	DWORD dwReadSize = 0, dwWrittenSize=0;
+	char ch_buffer[BUFSIZE];//读缓冲区
+	char wr_buffer[BUFSIZE];//写缓存区
+	//创建历史记录窗口
+	record->getlocaltime(record->localtime);
 	record->Output_Recording(ch_buffer,&dwReadSize);
 	HWND hwnd;
 	hwnd = CreateWindow(szWindowClass, L"历史记录", WS_OVERLAPPEDWINDOW,
 		CW_USEDEFAULT, 0, 1000, 1000, nullptr, nullptr, hInstance, nullptr);
 	HDC hdc_record = GetDC(hwnd);
-	ShowWindow(hwnd, SW_SHOWNORMAL);
-	UpdateWindow(hwnd);
-	for (int i = 0,y=0; i < dwReadSize; i++)
-	{
-		TCHAR line_record[100] = { 0 };//行缓冲区，用于存储每一行的字符
-		int j = 0;
-		while (ch_buffer[i] != '\n')
-		{
-			line_record[j] = ch_buffer[i];
-			j++;
-			i++;
-		}
-		TextOut(hdc_record, 0, y, line_record, _tcslen(line_record));
-		y += 30;
-		for (int k = 0; k < 100; k++) line_record[k] = '\0';
-	}
-	
 	ShowWindow(hwnd, SW_HIDE);
 	UpdateWindow(hwnd);
 
-	/*ShowWindow(hwnd, SW_SHOWNA);
-	UpdateWindow(hwnd);*/
+	//test
+	
 	HWND hWnd;
 
 	if (!InitInstance(hInstance, nCmdShow, hWnd))
@@ -220,23 +206,26 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		//{
 		//   mciSendString(TEXT("close bgm"), NULL, 0, NULL);
 		//}
-		//if(GetWindowLong(hwnd,GWL_STYLE))
-		for (int i = 0, y = 0; i < dwReadSize; i++)
+		TCHAR line_record[100] = { 0 };//行缓冲区，用于存储每一行的字符
+		if (IsWindowVisible(hwnd) == TRUE)
 		{
-			TCHAR line_record[100] = { 0 };//行缓冲区，用于存储每一行的字符
-			int j = 0;
-			while (ch_buffer[i] != '\r')
+			record->Output_Recording(ch_buffer, &dwReadSize);
+			for (int i = 0, y = 0; i < dwReadSize; i++)
 			{
-				line_record[j] = ch_buffer[i];
-				j++;
+				
+				int j = 0;
+				while (ch_buffer[i] != '\r')
+				{
+					line_record[j] = ch_buffer[i];
+					j++;
+					i++;
+				}
 				i++;
+				TextOut(hdc_record, 0, y, line_record, _tcslen(line_record));
+				y += 30;
+				for (int k = 0; k < 100; k++) line_record[k] = '\0';
 			}
-			i++;
-			TextOut(hdc_record, 0, y, line_record, _tcslen(line_record));
-			y += 30;
-			for (int k = 0; k < 100; k++) line_record[k] = '\0';
 		}
-
 		TextOut(hdc, 700, 0, score, _tcslen(score));//输出得分情况
 		wsprintf(score_i, _T("%d"), p->pStage->score);
 		TextOut(hdc, 750, 0, score_i, _tcslen(score_i));//输出得分情况
@@ -246,9 +235,14 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 			ResetGobjects();
 			if (s_n < STAGE_COUNT)
 			{
+				//播放胜利音效
 				mciSendString(TEXT("pause bgm "), NULL, 0, NULL);
 				mciSendString(TEXT("open 胜利.wav alias victory"), NULL, 0, NULL);
 				mciSendString(TEXT("play victory"), NULL, 0, NULL);
+				//录入游戏记录
+				record->score = p->pStage->score;
+				record->time_use = Time;
+				record->Write_Recording(wr_buffer, &dwWrittenSize, record);
 				MessageBoxA(hWnd, "恭喜过关！", "吃豆子提示", MB_OKA);
 				Gobject::pStage = MapArray[++s_n];
 				RECT screenRect;
@@ -309,30 +303,41 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		TextOut(hdc, 770, 30, time_s, _tcslen(time_s));
 	}
 
-	Realese(e1);
-	Realese(e2);
-	Realese(e3);
-	Realese(e4);
-	for (int i = 0; i < STAGE_COUNT; i++)
-	{
-		Realese(MapArray[i]);
-	}
+	
+	
 	if (p->GetTw() == OVER)
 	{
+		//播放游戏失败音效
 		mciSendString(TEXT("close bgm "), NULL, 0, NULL);
 		mciSendString(TEXT("open 游戏失败音效.wma alias defeat"), NULL, 0, NULL);
 		mciSendString(TEXT("play defeat"), NULL, 0, NULL);
+		//录入游戏记录
+		record->score = p->pStage->score;
+		record->time_use = Time;
+		record->Write_Recording(wr_buffer, &dwWrittenSize, record);
 		MessageBoxA(hWnd, "出师未捷", "吃豆子提示", MB_OKA);
 	}
 	else
 	{
+		//录入游戏记录
+		record->score = p->pStage->score;
+		record->time_use = Time;
+		record->Write_Recording(wr_buffer, &dwWrittenSize, record);
+		//播放游戏胜利音效
 		mciSendString(TEXT("close bgm "), NULL, 0, NULL);
 		mciSendString(TEXT("open 胜利.wav alias victory"), NULL, 0, NULL);
 		mciSendString(TEXT("play victory"), NULL, 0, NULL);
 		MessageBoxA(hWnd, "恭喜你赢得胜利", "吃豆子提示", MB_OKA);
 	}
+	Realese(e1);
+	Realese(e2);
+	Realese(e3);
+	Realese(e4);
 	Realese(p);
-
+	for (int i = 0; i < STAGE_COUNT; i++)
+	{
+		Realese(MapArray[i]);
+	}
 	return (int)msg.wParam;
 }
 
