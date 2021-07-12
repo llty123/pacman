@@ -88,6 +88,9 @@ void Realese(T t)
 		delete t;
 }
 
+
+
+
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	_In_opt_ HINSTANCE hPrevInstance,
 	_In_ LPWSTR    lpCmdLine,
@@ -128,31 +131,36 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	// 执行应用程序初始化:
 
 	//test
-	//const int BUFSIZE = 4096;
-	//DWORD dwReadSize = 0;
-	//char ch_buffer[BUFSIZE];//缓冲区
-	//record->Output_Recording(ch_buffer,&dwReadSize);
-	//HWND hwnd;
-	//hwnd = CreateWindow(szWindowClass, L"历史记录", WS_OVERLAPPEDWINDOW,
-	//	CW_USEDEFAULT, 0, 1000, 1000, nullptr, nullptr, hInstance, nullptr);
-	//HDC hdc_record = GetDC(hwnd);
-	//ShowWindow(hwnd, nCmdShow);
-	//UpdateWindow(hwnd);
-	//for (int i = 0,y=0; i < dwReadSize; i++)
-	//{
-	//	TCHAR line_record[100] = { 0 };//行缓冲区，用于存储每一行的字符
-	//	int j = 0;
-	//	while (ch_buffer[i] != '\n')
-	//	{
-	//		line_record[j] = ch_buffer[i];
-	//		j++;
-	//		i++;
-	//	}
-	//	TextOut(hdc_record, 0, y, line_record, _tcslen(line_record));
-	//	y += 30;
-	//	for (int k = 0; k < 100; k++) line_record[k] = '\0';
-	//}
+	const int BUFSIZE = 4096;
+	DWORD dwReadSize = 0;
+	char ch_buffer[BUFSIZE];//缓冲区
+	record->Output_Recording(ch_buffer,&dwReadSize);
+	HWND hwnd;
+	hwnd = CreateWindow(szWindowClass, L"历史记录", WS_OVERLAPPEDWINDOW,
+		CW_USEDEFAULT, 0, 1000, 1000, nullptr, nullptr, hInstance, nullptr);
+	HDC hdc_record = GetDC(hwnd);
+	ShowWindow(hwnd, SW_SHOWNORMAL);
+	UpdateWindow(hwnd);
+	for (int i = 0,y=0; i < dwReadSize; i++)
+	{
+		TCHAR line_record[100] = { 0 };//行缓冲区，用于存储每一行的字符
+		int j = 0;
+		while (ch_buffer[i] != '\n')
+		{
+			line_record[j] = ch_buffer[i];
+			j++;
+			i++;
+		}
+		TextOut(hdc_record, 0, y, line_record, _tcslen(line_record));
+		y += 30;
+		for (int k = 0; k < 100; k++) line_record[k] = '\0';
+	}
+	
+	ShowWindow(hwnd, SW_HIDE);
+	UpdateWindow(hwnd);
 
+	/*ShowWindow(hwnd, SW_SHOWNA);
+	UpdateWindow(hwnd);*/
 	HWND hWnd;
 
 	if (!InitInstance(hInstance, nCmdShow, hWnd))
@@ -186,7 +194,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		TEXT("button"), TEXT("游戏记录"),
 		WS_CHILD | WS_VISIBLE | BS_LEFT | BS_AUTOCHECKBOX,
 		750, 500, 85, 26,
-		hWnd, (HMENU)9, hInst, NULL
+		hWnd, (HMENU)10, hInst, NULL
 	);
 
 	// 主消息循环:
@@ -212,6 +220,22 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		//{
 		//   mciSendString(TEXT("close bgm"), NULL, 0, NULL);
 		//}
+		//if(GetWindowLong(hwnd,GWL_STYLE))
+		for (int i = 0, y = 0; i < dwReadSize; i++)
+		{
+			TCHAR line_record[100] = { 0 };//行缓冲区，用于存储每一行的字符
+			int j = 0;
+			while (ch_buffer[i] != '\r')
+			{
+				line_record[j] = ch_buffer[i];
+				j++;
+				i++;
+			}
+			i++;
+			TextOut(hdc_record, 0, y, line_record, _tcslen(line_record));
+			y += 30;
+			for (int k = 0; k < 100; k++) line_record[k] = '\0';
+		}
 
 		TextOut(hdc, 700, 0, score, _tcslen(score));//输出得分情况
 		wsprintf(score_i, _T("%d"), p->pStage->score);
@@ -381,39 +405,28 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		}
 		case 10:
 		{
-			int state = IsDlgButtonChecked(hWnd, 9);//判断按钮选中状态
+			int state = IsDlgButtonChecked(hWnd, 10);//判断按钮选中状态
 			HWND hwnd;
+			
 			if (state == BST_CHECKED)//按钮被选中
 			{
-				const int BUFSIZE = 4096;
-				DWORD dwReadSize = 0;
-				char ch_buffer[BUFSIZE];//缓冲区
-				record->Output_Recording(ch_buffer, &dwReadSize);
 				
-				hwnd = CreateWindow(szWindowClass, L"历史记录", WS_OVERLAPPEDWINDOW,
-					CW_USEDEFAULT, 0, 1000, 1000, nullptr, nullptr, GetModuleHandle, nullptr);
-				HDC hdc_record = GetDC(hwnd);
-				ShowWindow(hwnd, SW_SHOWNORMAL);
+
+				
+				hwnd = FindWindow(szWindowClass, L"历史记录");
+				ShowWindow(hwnd, SW_RESTORE);
+				
 				UpdateWindow(hwnd);
-				for (int i = 0, y = 0; i < dwReadSize; i++)
-				{
-					TCHAR line_record[100] = { 0 };//行缓冲区，用于存储每一行的字符
-					int j = 0;
-					while (ch_buffer[i] != '\n')
-					{
-						line_record[j] = ch_buffer[i];
-						j++;
-						i++;
-					}
-					TextOut(hdc_record, 0, y, line_record, _tcslen(line_record));
-					y += 30;
-					for (int k = 0; k < 100; k++) line_record[k] = '\0';
-				}
 			}
 			else if (state == BST_UNCHECKED)//按钮未被选中
 			{
-				//CloseWindow(hwnd);
+				HWND hwnd;
+				hwnd = FindWindow(szWindowClass, L"历史记录");
+				ShowWindow(hwnd, SW_HIDE);
+
+				UpdateWindow(hwnd);
 			}
+			break;
 		}
 		case IDM_ABOUT:
 			DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
