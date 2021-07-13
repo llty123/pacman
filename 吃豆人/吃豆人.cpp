@@ -262,7 +262,117 @@ MAIN:
 
 		if (game_visible == TRUE)
 		{
-			goto BEGIN_GAMING;
+			//goto BEGIN_GAMING;
+			StartTime = GetTickCount64();//计时开始
+
+			while (p->GetTw() != OVER && s_n < STAGE_COUNT)
+			{
+				TextOut(hdc, 700, 0, score, _tcslen(score));//输出得分情况
+				wsprintf(score_i, _T("%d"), p->pStage->score);
+				TextOut(hdc, 750, 0, score_i, _tcslen(score_i));//输出得分情况
+
+				if (p->Win())//玩家胜利
+				{
+					s_n++;
+					ResetGobjects();
+					if (s_n < STAGE_COUNT)
+					{
+						//播放胜利音效
+						mciSendString(TEXT("pause bgm "), NULL, 0, NULL);
+						mciSendString(TEXT("open 胜利.wav alias victory"), NULL, 0, NULL);
+						mciSendString(TEXT("play victory"), NULL, 0, NULL);
+						//录入游戏记录
+						record->score = p->pStage->score;
+						record->time_use = Time;
+						record->Write_Recording(wr_buffer, &dwWrittenSize, record);
+						MessageBoxA(hWnd, "恭喜过关！", "吃豆子提示", MB_OK);
+						Gobject::pStage = MapArray[++s_n];
+						RECT screenRect;
+						screenRect.top = 0;
+						screenRect.left = 0;
+						screenRect.right = WLENGTH;
+						screenRect.bottom = WHIGHT;
+						::FillRect(hdc, &screenRect, CreateSolidBrush(RGB(255, 255, 255)));
+						Gobject::pStage->DrawMap(hdc);
+					}
+					continue;
+				}//end_if (p->Win())//玩家胜利
+				if (GetAsyncKeyState(VK_UP) & 0x8000)//w控制大嘴向上
+					p->SetTwCommands(UP);
+				if (GetAsyncKeyState(VK_DOWN) & 0x8000)//s控制大嘴向下
+					p->SetTwCommands(DOWN);
+				if (GetAsyncKeyState(VK_LEFT) & 0x8000)//a控制大嘴向左
+					p->SetTwCommands(LEFT);
+				if (GetAsyncKeyState(VK_RIGHT) & 0x8000)//d控制大嘴向右
+					p->SetTwCommands(RIGHT);
+				else
+				{
+					if (GetTickCount64() - t > 58)
+					{
+						HDC hdc = GetDC(hWnd);
+						e1->action();
+						e2->action();
+						e3->action();
+						e4->action();
+						p->action();
+
+						Gobject::pStage->DrawPeas(hdc);
+						e1->DrawBlank(hdc);
+						e2->DrawBlank(hdc);
+						e3->DrawBlank(hdc);
+						e4->DrawBlank(hdc);
+						p->DrawBlank(hdc);
+						e1->Draw(hdc);
+						e2->Draw(hdc);
+						e3->Draw(hdc);
+						e4->Draw(hdc);
+						p->Draw(hdc);
+						DeleteDC(hdc);
+						t = GetTickCount64();
+					}
+				}//end_else
+				EndTime = GetTickCount64();//计时结束
+				TextOut(hdc, 700, 30, time, _tcslen(time));//输出用时情况
+				Time = (EndTime - StartTime) / 1000;//游戏时长
+				wsprintf(time_i, _T("%d"), Time);
+				TextOut(hdc, 740, 30, time_i, _tcslen(time_i));
+				TextOut(hdc, 770, 30, time_s, _tcslen(time_s));
+				if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+				{
+					TranslateMessage(&msg);
+					DispatchMessage(&msg);
+				}
+			}//end_while (p->GetTw() != OVER && s_n < STAGE_COUNT)
+
+
+
+			if (p->GetTw() == OVER)
+			{
+				//播放游戏失败音效
+				mciSendString(TEXT("close bgm "), NULL, 0, NULL);
+				mciSendString(TEXT("open 游戏失败音效.wma alias defeat"), NULL, 0, NULL);
+				mciSendString(TEXT("play defeat"), NULL, 0, NULL);
+				//录入游戏记录
+				record->score = p->pStage->score;
+				record->time_use = Time;
+				record->Write_Recording(wr_buffer, &dwWrittenSize, record);
+				MessageBoxA(hWnd, "出师未捷", "吃豆子提示", MB_OK);
+				goto END_GAME;
+			}//end_if (p->GetTw() == OVER)
+			else
+			{
+				//录入游戏记录
+				record->score = p->pStage->score;
+				record->time_use = Time;
+				record->Write_Recording(wr_buffer, &dwWrittenSize, record);
+				//播放游戏胜利音效
+				mciSendString(TEXT("close bgm "), NULL, 0, NULL);
+				mciSendString(TEXT("open 胜利.wav alias victory"), NULL, 0, NULL);
+				mciSendString(TEXT("play victory"), NULL, 0, NULL);
+				MessageBoxA(hWnd, "恭喜你赢得胜利", "吃豆子提示", MB_OK);
+				goto END_GAME;
+			}
+
 		}//end_if (game_visible == TRUE)
 		else
 		{
@@ -309,116 +419,8 @@ MAIN:
 		
 		
 	}//end_while (1)
-BEGIN_GAMING:	
-	StartTime = GetTickCount64();//计时开始
-
-	while (p->GetTw() != OVER && s_n < STAGE_COUNT)
-	{
-		TextOut(hdc, 700, 0, score, _tcslen(score));//输出得分情况
-		wsprintf(score_i, _T("%d"), p->pStage->score);
-		TextOut(hdc, 750, 0, score_i, _tcslen(score_i));//输出得分情况
-
-		if (p->Win())//玩家胜利
-		{
-			s_n++;
-			ResetGobjects();
-			if (s_n < STAGE_COUNT)
-			{
-				//播放胜利音效
-				mciSendString(TEXT("pause bgm "), NULL, 0, NULL);
-				mciSendString(TEXT("open 胜利.wav alias victory"), NULL, 0, NULL);
-				mciSendString(TEXT("play victory"), NULL, 0, NULL);
-				//录入游戏记录
-				record->score = p->pStage->score;
-				record->time_use = Time;
-				record->Write_Recording(wr_buffer, &dwWrittenSize, record);
-				MessageBoxA(hWnd, "恭喜过关！", "吃豆子提示", MB_OK);
-				Gobject::pStage = MapArray[++s_n];
-				RECT screenRect;
-				screenRect.top = 0;
-				screenRect.left = 0;
-				screenRect.right = WLENGTH;
-				screenRect.bottom = WHIGHT;
-				::FillRect(hdc, &screenRect, CreateSolidBrush(RGB(255, 255, 255)));
-				Gobject::pStage->DrawMap(hdc);
-			}
-			continue;
-		}//end_if (p->Win())//玩家胜利
-		if (GetAsyncKeyState(VK_UP) & 0x8000)//w控制大嘴向上
-			p->SetTwCommands(UP);
-		if (GetAsyncKeyState(VK_DOWN) & 0x8000)//s控制大嘴向下
-			p->SetTwCommands(DOWN);
-		if (GetAsyncKeyState(VK_LEFT) & 0x8000)//a控制大嘴向左
-			p->SetTwCommands(LEFT);
-		if (GetAsyncKeyState(VK_RIGHT) & 0x8000)//d控制大嘴向右
-			p->SetTwCommands(RIGHT);
-		else
-		{
-			if (GetTickCount64() - t > 58)
-			{
-				HDC hdc = GetDC(hWnd);
-				e1->action();
-				e2->action();
-				e3->action();
-				e4->action();
-				p->action();
-
-				Gobject::pStage->DrawPeas(hdc);
-				e1->DrawBlank(hdc);
-				e2->DrawBlank(hdc);
-				e3->DrawBlank(hdc);
-				e4->DrawBlank(hdc);
-				p->DrawBlank(hdc);
-				e1->Draw(hdc);
-				e2->Draw(hdc);
-				e3->Draw(hdc);
-				e4->Draw(hdc);
-				p->Draw(hdc);
-				DeleteDC(hdc);
-				t = GetTickCount64();
-			}
-		}//end_else
-		EndTime = GetTickCount64();//计时结束
-		TextOut(hdc, 700, 30, time, _tcslen(time));//输出用时情况
-		Time = (EndTime - StartTime) / 1000;//游戏时长
-		wsprintf(time_i, _T("%d"), Time);
-		TextOut(hdc, 740, 30, time_i, _tcslen(time_i));
-		TextOut(hdc, 770, 30, time_s, _tcslen(time_s));
-		if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
-		{
-			TranslateMessage(&msg);
-			DispatchMessage(&msg);
-		}
-	}//end_while (p->GetTw() != OVER && s_n < STAGE_COUNT)
-
+//BEGIN_GAMING:	
 	
-
-	if (p->GetTw() == OVER)
-	{
-		//播放游戏失败音效
-		mciSendString(TEXT("close bgm "), NULL, 0, NULL);
-		mciSendString(TEXT("open 游戏失败音效.wma alias defeat"), NULL, 0, NULL);
-		mciSendString(TEXT("play defeat"), NULL, 0, NULL);
-		//录入游戏记录
-		record->score = p->pStage->score;
-		record->time_use = Time;
-		record->Write_Recording(wr_buffer, &dwWrittenSize, record);
-		MessageBoxA(hWnd, "出师未捷", "吃豆子提示", MB_OK);
-		goto END_GAME;
-	}//end_if (p->GetTw() == OVER)
-	else
-	{
-		//录入游戏记录
-		record->score = p->pStage->score;
-		record->time_use = Time;
-		record->Write_Recording(wr_buffer, &dwWrittenSize, record);
-		//播放游戏胜利音效
-		mciSendString(TEXT("close bgm "), NULL, 0, NULL);
-		mciSendString(TEXT("open 胜利.wav alias victory"), NULL, 0, NULL);
-		mciSendString(TEXT("play victory"), NULL, 0, NULL);
-		MessageBoxA(hWnd, "恭喜你赢得胜利", "吃豆子提示", MB_OK);
-		goto END_GAME;
-	}
 	
 	
 END_GAME :	
