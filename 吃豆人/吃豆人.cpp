@@ -16,6 +16,7 @@
 #define MAX_LOADSTRING 100
 
 // 全局变量:
+WNDPROC  oldProc = NULL;
 HINSTANCE hInst;                                // 当前实例
 WCHAR szTitle[MAX_LOADSTRING];                  // 标题栏文本
 WCHAR szWindowClass[MAX_LOADSTRING];            // 主窗口类名
@@ -29,6 +30,7 @@ Record* record;
 ATOM                MyRegisterClass(HINSTANCE hInstance);
 
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
+LRESULT CALLBACK WndProc_record(HWND hwnd_record, UINT message, WPARAM wParam, LPARAM lParam);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
 
 //
@@ -88,9 +90,6 @@ void Realese(T t)
 		delete t;
 }
 
-
-
-
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	_In_opt_ HINSTANCE hPrevInstance,
 	_In_ LPWSTR    lpCmdLine,
@@ -130,23 +129,35 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
 	// 执行应用程序初始化:
 
-	
 	const int BUFSIZE = 4096;
-	DWORD dwReadSize = 0, dwWrittenSize=0;
+	DWORD dwReadSize = 0, dwWrittenSize = 0;
 	char ch_buffer[BUFSIZE];//读缓冲区
 	char wr_buffer[BUFSIZE];//写缓存区
 	//创建历史记录窗口
 	record->getlocaltime(record->localtime);
-	record->Output_Recording(ch_buffer,&dwReadSize);
-	HWND hwnd;
-	hwnd = CreateWindow(szWindowClass, L"历史记录", WS_OVERLAPPEDWINDOW,
+	record->Output_Recording(ch_buffer, &dwReadSize);
+	HWND hwnd_record;
+	hwnd_record = CreateWindow(szWindowClass, L"历史记录", WS_OVERLAPPEDWINDOW,
 		CW_USEDEFAULT, 0, 1000, 1000, nullptr, nullptr, hInstance, nullptr);
-	HDC hdc_record = GetDC(hwnd);
-	ShowWindow(hwnd, SW_HIDE);
-	UpdateWindow(hwnd);
+	HDC hdc_record = GetDC(hwnd_record);
+	ShowWindow(hwnd_record, SW_HIDE);
+	UpdateWindow(hwnd_record);
 
 	//test
-	
+
+	//创建主菜单窗口
+
+	HWND hwnd_main;
+	hwnd_main = CreateWindow(szWindowClass, L"主菜单", WS_OVERLAPPEDWINDOW,
+		CW_USEDEFAULT, 0, 1000, 1000, nullptr, nullptr, hInstance, nullptr);
+	HDC hdc_main = GetDC(hwnd_main);
+	ShowWindow(hwnd_main, SW_HIDE);
+	UpdateWindow(hwnd_main);
+
+
+
+
+
 	HWND hWnd;
 
 	if (!InitInstance(hInstance, nCmdShow, hWnd))
@@ -178,14 +189,23 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	//创建游戏记录控制按钮
 	CreateWindow(
 		TEXT("button"), TEXT("游戏记录"),
-		WS_CHILD | WS_VISIBLE | BS_LEFT | BS_AUTOCHECKBOX,
+		WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
 		750, 500, 85, 26,
 		hWnd, (HMENU)10, hInst, NULL
 	);
 
+	//记录窗口创建返回控制按钮
+	/*CreateWindow(
+		TEXT("button"), TEXT("返回"),
+		WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
+		750, 500, 85, 26,
+		hwnd_record, (HMENU)11, hInst, NULL
+	);*/
+
 	// 主消息循环:
 	while (p->GetTw() != OVER && s_n < STAGE_COUNT)
 	{
+		HDC hdc_record = GetDC(hwnd_record);
 		//HDC hdc = GetDC(hWnd);
 
 		//int state = IsDlgButtonChecked(hWnd, 9);//判断按钮选中状态
@@ -207,12 +227,11 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		//   mciSendString(TEXT("close bgm"), NULL, 0, NULL);
 		//}
 		TCHAR line_record[100] = { 0 };//行缓冲区，用于存储每一行的字符
-		if (IsWindowVisible(hwnd) == TRUE)
+		if (IsWindowVisible(hwnd_record) == TRUE)
 		{
 			record->Output_Recording(ch_buffer, &dwReadSize);
 			for (int i = 0, y = 0; i < dwReadSize; i++)
 			{
-				
 				int j = 0;
 				while (ch_buffer[i] != '\r')
 				{
@@ -243,7 +262,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 				record->score = p->pStage->score;
 				record->time_use = Time;
 				record->Write_Recording(wr_buffer, &dwWrittenSize, record);
-				MessageBoxA(hWnd, "恭喜过关！", "吃豆子提示", MB_OKA);
+				MessageBoxA(hWnd, "恭喜过关！", "吃豆子提示", MB_OK);
 				Gobject::pStage = MapArray[++s_n];
 				RECT screenRect;
 				screenRect.top = 0;
@@ -303,8 +322,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		TextOut(hdc, 770, 30, time_s, _tcslen(time_s));
 	}
 
-	
-	
 	if (p->GetTw() == OVER)
 	{
 		//播放游戏失败音效
@@ -315,7 +332,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		record->score = p->pStage->score;
 		record->time_use = Time;
 		record->Write_Recording(wr_buffer, &dwWrittenSize, record);
-		MessageBoxA(hWnd, "出师未捷", "吃豆子提示", MB_OKA);
+		MessageBoxA(hWnd, "出师未捷", "吃豆子提示", MB_OK);
 	}
 	else
 	{
@@ -327,7 +344,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		mciSendString(TEXT("close bgm "), NULL, 0, NULL);
 		mciSendString(TEXT("open 胜利.wav alias victory"), NULL, 0, NULL);
 		mciSendString(TEXT("play victory"), NULL, 0, NULL);
-		MessageBoxA(hWnd, "恭喜你赢得胜利", "吃豆子提示", MB_OKA);
+		MessageBoxA(hWnd, "恭喜你赢得胜利", "吃豆子提示", MB_OK);
 	}
 	Realese(e1);
 	Realese(e2);
@@ -380,6 +397,8 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
 //
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
+	
+
 	switch (message)
 	{
 	case WM_COMMAND:
@@ -410,27 +429,33 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		}
 		case 10:
 		{
-			int state = IsDlgButtonChecked(hWnd, 10);//判断按钮选中状态
-			HWND hwnd;
-			
-			if (state == BST_CHECKED)//按钮被选中
-			{
-				
+			//int state = IsDlgButtonChecked(hWnd, 10);//判断按钮选中状态
+			HWND hwnd_record;
 
-				
-				hwnd = FindWindow(szWindowClass, L"历史记录");
-				ShowWindow(hwnd, SW_RESTORE);
-				
-				UpdateWindow(hwnd);
-			}
-			else if (state == BST_UNCHECKED)//按钮未被选中
-			{
-				HWND hwnd;
-				hwnd = FindWindow(szWindowClass, L"历史记录");
-				ShowWindow(hwnd, SW_HIDE);
+			//if (state == BST_CHECKED)//按钮被选中
+			//{
+				hwnd_record = FindWindow(szWindowClass, L"历史记录");
+				ShowWindow(hwnd_record, SW_RESTORE);
 
-				UpdateWindow(hwnd);
-			}
+				UpdateWindow(hwnd_record);
+				
+				ShowWindow(hWnd, SW_HIDE);
+
+				UpdateWindow(hWnd);
+				oldProc = (WNDPROC)SetWindowLong(hwnd_record, -4, (LONG)WndProc_record);
+				//oldProc = NULL;
+				//将窗口过程函数改为记录窗口，查看是否有需要处理的记录
+				
+			//}
+			//else if (state == BST_UNCHECKED)//按钮未被选中
+			//{
+				/*HWND hwnd_record;
+				hwnd_record = FindWindow(szWindowClass, L"历史记录");
+				ShowWindow(hwnd_record, SW_HIDE);
+
+				UpdateWindow(hwnd_record);*/
+				//return DefWindowProc(hWnd, message, wParam, lParam);
+			/*}*/
 			break;
 		}
 		case IDM_ABOUT:
@@ -441,7 +466,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			break;
 		default:
 			return DefWindowProc(hWnd, message, wParam, lParam);
-
 		}
 		break;
 	}
@@ -450,7 +474,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		PAINTSTRUCT ps;
 		HDC hdc = BeginPaint(hWnd, &ps);
 		// TODO: 在此处添加使用 hdc 的任何绘图代码...
-
+		hdc = GetDC(hWnd);
+		Gobject::pStage->DrawMap(hdc);//绘制地图
 		EndPaint(hWnd, &ps);
 	}
 	break;
@@ -468,22 +493,108 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	return 0;
 }
 
-	// “关于”框的消息处理程序。
-	INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
+//记录窗口回调函数
+LRESULT CALLBACK WndProc_record(HWND hwnd_record, UINT message, WPARAM wParam, LPARAM lParam)
+{
+	switch (message)
 	{
-		UNREFERENCED_PARAMETER(lParam);
-		switch (message)
+	case WM_COMMAND:
+	{
+		int wmId = LOWORD(wParam);
+		// 分析菜单选择:
+		switch (wmId)
 		{
-		case WM_INITDIALOG:
-			return (INT_PTR)TRUE;
+		case 11:
+		{
+			//int state = IsDlgButtonChecked(hwnd_record, 11);//判断按钮选中状态
+			HWND hwnd_main;
 
-		case WM_COMMAND:
-			if (LOWORD(wParam) == IDOK || LOWORD(wParam) == IDCANCEL)
-			{
-				EndDialog(hDlg, LOWORD(wParam));
-				return (INT_PTR)TRUE;
-			}
+			//if (state == BST_CHECKED)//按钮被选中
+			//{
+				hwnd_main = FindWindow(szWindowClass, L"吃豆人");
+				ShowWindow(hwnd_main, SW_RESTORE);
+
+				UpdateWindow(hwnd_main);
+				ShowWindow(hwnd_record, SW_HIDE);
+
+				UpdateWindow(hwnd_record);
+
+				HWND hWnd;
+				hWnd = FindWindow(szWindowClass, L"吃豆人");
+				return  CallWindowProc(oldProc, hWnd, message, wParam, lParam);
+			//}
+			//else if (state == BST_UNCHECKED)//按钮未被选中
+			//{
+				//return DefWindowProc(hwnd_record, message, wParam, lParam);
+			/*}*/
 			break;
 		}
-		return (INT_PTR)FALSE;
+		case IDM_ABOUT:
+			DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hwnd_record, About);
+			break;
+		case IDM_EXIT:
+			DestroyWindow(hwnd_record);
+			break;
+		default:
+			/*HWND hWnd;
+			hWnd = FindWindow(szWindowClass, L"吃豆人");
+			return  CallWindowProc(oldProc, hWnd, message, wParam, lParam);*/
+			break;
+		}
+		break;
 	}
+	case WM_PAINT:
+	{
+		PAINTSTRUCT ps;
+		HDC hdc = BeginPaint(hwnd_record, &ps);
+		// TODO: 在此处添加使用 hdc 的任何绘图代码...
+		
+		EndPaint(hwnd_record, &ps);
+	}
+	break;
+	case WM_CREATE:
+	{
+		LPCREATESTRUCT   pcs = (LPCREATESTRUCT)lParam;
+
+		CreateWindow(
+			TEXT("button"), TEXT("返回"),
+			WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
+			750, 500, 85, 26,
+			hwnd_record, (HMENU)11, pcs->hInstance, NULL
+		);
+	}
+	case WM_DESTROY:
+	{
+		PostQuitMessage(0);
+		::exit(0);
+		break;
+	}
+	default:
+	{
+		//其它的消息交给主窗口的处理过程函数处理
+		HWND hWnd;
+		hWnd = FindWindow(szWindowClass, L"吃豆人");
+		return  CallWindowProc(oldProc, hWnd, message, wParam, lParam);
+	}
+	}
+}
+
+// “关于”框的消息处理程序。
+INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
+{
+	UNREFERENCED_PARAMETER(lParam);
+	switch (message)
+	{
+	case WM_INITDIALOG:
+		return (INT_PTR)TRUE;
+
+	case WM_COMMAND:
+		if (LOWORD(wParam) == IDOK || LOWORD(wParam) == IDCANCEL)
+		{
+			EndDialog(hDlg, LOWORD(wParam));
+			return (INT_PTR)TRUE;
+		}
+		break;
+	}
+	return (INT_PTR)FALSE;
+}
