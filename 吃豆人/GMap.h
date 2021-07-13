@@ -59,4 +59,15 @@ public:
 };
 
 
+//ตฺศýนุ
+class Stage_3 :public Gmap
+{
+private:
+	bool static initData[MAPLENTH][MAPLENTH];
+
+
+public:
+	Stage_3();
+};
+
 

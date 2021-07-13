@@ -5,8 +5,8 @@
 #include "GMap.h"
 
 #define PLAYERSPEED 4	//玩家速度
-#define ENEMYSPEED 0	//敌人速度
-#define LEGCOUNTS 5		//敌人腿的数量
+#define ENEMYSPEED 4	//敌人速度
+#define LEGCOUNTS 100		//敌人腿的数量
 #define DISTANCE 10		//图形范围
 #define BLUE_ALERT	8	//蓝色警戒范围
 #define D_OFFSET 2		//绘图误差

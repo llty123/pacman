@@ -83,7 +83,7 @@ void Record::Write_Recording(char* ch_buffer, DWORD* dwWrittenSize,Record *recor
 		tmp = tmp % (int)pow(10, j - 1);
 		i++;
 	}
-	for (j = 0; j < 7; j++)//输入七个空格
+	for (j = 0; j < 8; j++)//输入八个空格
 	{
 		ch_buffer[i] = ' ';
 		i++;
@@ -101,7 +101,7 @@ void Record::Write_Recording(char* ch_buffer, DWORD* dwWrittenSize,Record *recor
 	
 	//*dwWrittenSize +=43;//获得recording的文件大小
 	dwPtr = SetFilePointer(hFile, *dwWrittenSize, NULL, FILE_BEGIN);
-	bRet = ::WriteFile(hFile, ch_buffer, 46, dwWrittenSize, NULL);
+	bRet = ::WriteFile(hFile, ch_buffer, 47, dwWrittenSize, NULL);
 
 	FlushFileBuffers(hFile);//将写文件缓冲区的数据强制写入磁盘。
 	CloseHandle(hFile);

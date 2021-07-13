@@ -19,6 +19,8 @@
 #define MUSIC		   3
 #define BEGIN_GAME	   4
 #define GAME_BACK      5
+#define QUIT		   6
+#define GAME_QUIT	   7
 
 #define MAX_LOADSTRING 100
 
@@ -145,13 +147,14 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	RegisterClassExW(&wrecord);
 
 	int s_n = 0;//进行到的关卡数
+	BOOL begin_game = FALSE;//是否已经开始游戏
 	p = new PacMan(P_ROW, P_ARRAY);
 	e1 = new RedOne(E_ROW, E_ARRAY);
 	e2 = new RedOne(E_ROW, E_ARRAY);
 	e3 = new BlueOne(E_ROW, E_ARRAY);
 	e4 = new YellowOne(E_ROW, E_ARRAY);
 	record = new Record();
-	Gmap* MapArray[STAGE_COUNT] = { new Stage_1(),new Stage_1(), new Stage_1() };//存储关卡地图
+	Gmap* MapArray[STAGE_COUNT] = { new Stage_3(),new Stage_2(), new Stage_1() };//存储关卡地图
 	Gobject::pStage = MapArray[s_n];
 	Enermy::player = p;//敌人追踪的玩家为p
 	TCHAR score[] = _T("score:");
@@ -183,15 +186,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	MSG msg;
 	
 
-	//创建游戏界面
-	HWND hWnd;
-	if (!InitInstance(hInstance, nCmdShow, hWnd))
-	{
-		return FALSE;
-	}
-	ShowWindow(hWnd, SW_HIDE);
-	UpdateWindow(hWnd);
-	HDC hdc = GetDC(hWnd);
+	
 	//创建记录窗口
 	HWND hwnd_record;
 	hwnd_record = CreateWindow(L"RECORD", L"历史记录", WS_OVERLAPPEDWINDOW,
@@ -207,6 +202,15 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	ShowWindow(hwnd_main, SW_SHOWNORMAL);
 	UpdateWindow(hwnd_main);
 
+	//创建游戏界面
+	HWND hWnd;
+	if (!InitInstance(hInstance, nCmdShow, hWnd))
+	{
+		return FALSE;
+	}
+	ShowWindow(hWnd, SW_HIDE);
+	UpdateWindow(hWnd);
+	HDC hdc = GetDC(hWnd);
 
 	//创建历史记录窗口
 	record->getlocaltime(record->localtime);
@@ -215,35 +219,13 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
 	
 	Gobject::pStage->DrawMap(hdc);//绘制地图
-	/*TextOut(hdc, 700, 570, tip, _tcslen(tip));
-	TextOut(hdc, 700, 600, tip_1, _tcslen(tip_1));
-	TextOut(hdc, 700, 630, tip_2, _tcslen(tip_2));
-	TextOut(hdc, 700, 660, tip_3, _tcslen(tip_3));
-	TextOut(hdc, 700, 690, tip_4, _tcslen(tip_4));
-	*/
+	
 
 	mciSendString(TEXT("open 游戏音乐.wma alias bgm"), NULL, 0, NULL);
 	mciSendString(TEXT("play bgm repeat"), NULL, 0, NULL);
 	
 
-	//创建游戏记录控制按钮
-	CreateWindow(
-		TEXT("button"), TEXT("游戏记录"),
-		WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-		750, 500, 85, 26,
-		hWnd, (HMENU)10, hInst, NULL
-	);
-
-	//记录窗口创建返回控制按钮
-	/*CreateWindow(
-		TEXT("button"), TEXT("返回"),
-		WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-		750, 500, 85, 26,
-		hwnd_record, (HMENU)11, hInst, NULL
-	);*/
-
 	// 主消息循环:
-MAIN:
 	while (1)
 	{
 		//获得窗口可见性
@@ -262,7 +244,7 @@ MAIN:
 
 		if (game_visible == TRUE)
 		{
-			//goto BEGIN_GAMING;
+			begin_game = TRUE;
 			StartTime = GetTickCount64();//计时开始
 
 			while (p->GetTw() != OVER && s_n < STAGE_COUNT)
@@ -281,12 +263,12 @@ MAIN:
 						mciSendString(TEXT("pause bgm "), NULL, 0, NULL);
 						mciSendString(TEXT("open 胜利.wav alias victory"), NULL, 0, NULL);
 						mciSendString(TEXT("play victory"), NULL, 0, NULL);
-						//录入游戏记录
-						record->score = p->pStage->score;
-						record->time_use = Time;
-						record->Write_Recording(wr_buffer, &dwWrittenSize, record);
+						////录入游戏记录
+						//record->score = p->pStage->score;
+						//record->time_use = Time;
+						//record->Write_Recording(wr_buffer, &dwWrittenSize, record);
 						MessageBoxA(hWnd, "恭喜过关！", "吃豆子提示", MB_OK);
-						Gobject::pStage = MapArray[++s_n];
+						Gobject::pStage = MapArray[s_n];
 						RECT screenRect;
 						screenRect.top = 0;
 						screenRect.left = 0;
@@ -294,6 +276,11 @@ MAIN:
 						screenRect.bottom = WHIGHT;
 						::FillRect(hdc, &screenRect, CreateSolidBrush(RGB(255, 255, 255)));
 						Gobject::pStage->DrawMap(hdc);
+						if (IsPlaying() == FALSE)
+						{
+							mciSendString(TEXT("play bgm repeat"), NULL, 0, NULL);
+						}
+						mciSendString(TEXT("close victory"), NULL, 0, NULL);
 					}
 					continue;
 				}//end_if (p->Win())//玩家胜利
@@ -356,7 +343,7 @@ MAIN:
 				record->score = p->pStage->score;
 				record->time_use = Time;
 				record->Write_Recording(wr_buffer, &dwWrittenSize, record);
-				MessageBoxA(hWnd, "出师未捷", "吃豆子提示", MB_OK);
+				MessageBoxA(hWnd, "哎呀，失败了\n下次加油吧", "吃豆子提示", MB_OK);
 				goto END_GAME;
 			}//end_if (p->GetTw() == OVER)
 			else
@@ -374,9 +361,11 @@ MAIN:
 			}
 
 		}//end_if (game_visible == TRUE)
-		else
+		else if(begin_game==TRUE&&game_visible==FALSE)
 		{
-			;
+			begin_game = FALSE;
+			//重置游戏
+			//UpdateWindow(hWnd);
 		}
 
 		if (record_visible == TRUE)
@@ -419,7 +408,7 @@ MAIN:
 		
 		
 	}//end_while (1)
-//BEGIN_GAMING:	
+	
 	
 	
 	
@@ -472,6 +461,7 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
 //  WM_DESTROY  - 发送退出消息并返回
 //
 //
+
 //游戏界面回调函数
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
@@ -483,20 +473,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		// 分析菜单选择:
 		switch (wmId)
 		{
-		case GAME_BACK:
+		case GAME_QUIT:
 		{
-			HWND hwnd_main = FindWindow(L"MAIN", L"主菜单");
-			ShowWindow(hwnd_main, SW_RESTORE);
-
-			UpdateWindow(hwnd_main);
-
-			HWND hwnd_record = FindWindow(L"RECORD", L"历史记录");
-			ShowWindow(hwnd_record, SW_HIDE);
-
-			UpdateWindow(hwnd_record);
-			ShowWindow(hWnd, SW_HIDE);
-
-			UpdateWindow(hWnd);
+			int result=MessageBoxA(hWnd, "此时退出将不会保存游戏记录！\n是否要退出？", "吃豆人提示", MB_YESNO| MB_ICONEXCLAMATION);
+			switch (result)
+			{
+			case IDYES: ::exit(0);//退出程序
+			case IDNO: break;
+			}
+			
 			break;
 		}
 		case IDM_ABOUT:
@@ -515,25 +500,30 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		PAINTSTRUCT ps;
 		HDC hdc = BeginPaint(hWnd, &ps);
 		// TODO: 在此处添加使用 hdc 的任何绘图代码...
+		
+
+	
+		
 		Gobject::pStage->DrawMap(hdc);//绘制地图
+
 		EndPaint(hWnd, &ps);
 	}
 	break;
 	case WM_CREATE:
 	{
-		//创建返回主菜单按钮
+		//创建退出按钮
 		CreateWindow(
-			TEXT("button"), TEXT("返回主菜单"),
+			TEXT("button"), TEXT("退出游戏"),
 			WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-			750, 550, 85, 26,
-			hWnd, (HMENU)GAME_BACK, hInst, NULL
+			700, 400, 100, 50,
+			hWnd, (HMENU)GAME_QUIT, hInst, NULL
 		);
 		//显示提示信息
 		CreateWindow(
 			TEXT("static"), 
 			TEXT("提示：\n键盘“↑”控制向上运动\n键盘“↓”控制向下运动\n键盘“←”控制向左运动\n键盘“→”控制向右运动"),
 			WS_CHILD | WS_VISIBLE | SS_LEFT,
-			750, 590, 200, 200,
+			700, 500, 200, 200,
 			hWnd, (HMENU)99, hInst, NULL
 		);
 		
@@ -549,6 +539,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		DestroyWindow(hwnd_main);
 		DestroyWindow(hwnd_game);
 		PostQuitMessage(0);
+		::exit(0);//退出程序
 		break;
 	}
 	default:
@@ -572,7 +563,7 @@ LRESULT CALLBACK WndProc_main(HWND hwnd_main, UINT message, WPARAM wParam, LPARA
 			int state = IsDlgButtonChecked(hwnd_main, MUSIC);//判断按钮选中状态
 			if (state == BST_CHECKED)//按钮被选中
 			{
-				MessageBoxA(hwnd_main, "音乐暂停", "吃豆子提示", MB_OK);
+				MessageBoxA(hwnd_main, "音乐暂停", "吃豆子提示", MB_OK| MB_ICONERROR);
 				mciSendString(TEXT("pause bgm"), NULL, 0, NULL);
 			}
 			else if (state == BST_UNCHECKED)//按钮未被选中
@@ -621,6 +612,15 @@ LRESULT CALLBACK WndProc_main(HWND hwnd_main, UINT message, WPARAM wParam, LPARA
 			UpdateWindow(hwnd_main);
 			break;
 		}
+		case QUIT://退出游戏
+		{
+			int result = MessageBoxA(hwnd_main, "是否退出游戏？", "吃豆人提示", MB_YESNO | MB_ICONEXCLAMATION);
+			switch (result)
+			{
+			case IDYES: ::exit(0);//退出程序
+			case IDNO: break;
+			}
+		}
 		case IDM_ABOUT:
 			DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hwnd_main, About);
 			break;
@@ -637,6 +637,16 @@ LRESULT CALLBACK WndProc_main(HWND hwnd_main, UINT message, WPARAM wParam, LPARA
 		PAINTSTRUCT ps;
 		HDC hdc = BeginPaint(hwnd_main, &ps);
 		// TODO: 在此处添加使用 hdc 的任何绘图代码...
+		HDC  hMemDC = CreateCompatibleDC(hdc);
+		HBITMAP hBmp = (HBITMAP)LoadImage(NULL, L"background.bmp", IMAGE_BITMAP, 800, 800, LR_LOADFROMFILE);
+		SelectObject(hMemDC, hBmp);
+
+		SetStretchBltMode(hdc, HALFTONE);
+
+
+		StretchBlt(hdc, 0, 0, 1000, 1000, hMemDC, 0, 0, 800, 800, SRCCOPY);
+		DeleteObject(hBmp);
+		DeleteDC(hMemDC);
 		EndPaint(hwnd_main, &ps);
 	}
 	break;
@@ -646,27 +656,35 @@ LRESULT CALLBACK WndProc_main(HWND hwnd_main, UINT message, WPARAM wParam, LPARA
 		CreateWindow(
 			TEXT("button"), TEXT("游戏记录"),
 			WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-			750, 500, 85, 26,
+			450, 500, 100, 50,
 			hwnd_main, (HMENU)GAME_RECORDING, hInst, NULL
 		);
+		
 		//创建开始游戏按钮
 		CreateWindow(
 			TEXT("button"), TEXT("开始游戏"),
 			WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-			750, 550, 85, 26,
+			450, 400, 100, 50,
 			hwnd_main, (HMENU)BEGIN_GAME, hInst, NULL
+		);
+		//创建退出按钮
+		CreateWindow(
+			TEXT("button"), TEXT("退出游戏"),
+			WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
+			450, 600, 100, 50,
+			hwnd_main, (HMENU)QUIT, hInst, NULL
 		);
 		//创建音乐播放控制按钮
 		CreateWindow(
 			TEXT("button"), TEXT("音乐暂停"),
 			WS_CHILD | WS_VISIBLE | BS_LEFT | BS_AUTOCHECKBOX,
-			750, 400, 85, 26,
+			450, 700, 100, 26,
 			hwnd_main, (HMENU)MUSIC, hInst, NULL
 		);
 		//输出游戏图片
 
 		HWND hBtn = CreateWindow(
-			TEXT("BuTtOn"), TEXT("返回主菜单1234567890"),
+			TEXT("BuTtOn"), TEXT(" "),
 			WS_CHILD | WS_VISIBLE | BS_BITMAP,
 			300, 50, 400, 300,
 			hwnd_main, (HMENU)100, hInst, NULL
@@ -685,6 +703,7 @@ LRESULT CALLBACK WndProc_main(HWND hwnd_main, UINT message, WPARAM wParam, LPARA
 		DestroyWindow(hwnd_game);
 		DestroyWindow(hwnd_main);
 		PostQuitMessage(0);
+		::exit(0);//退出程序
 		break;
 	}
 	default:
@@ -714,6 +733,7 @@ LRESULT CALLBACK WndProc_record(HWND hwnd_record, UINT message, WPARAM wParam, L
 			UpdateWindow(hwnd_record);
 			break;
 		}
+		
 		case IDM_ABOUT:
 			DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hwnd_record, About);
 			break;
@@ -730,6 +750,17 @@ LRESULT CALLBACK WndProc_record(HWND hwnd_record, UINT message, WPARAM wParam, L
 		PAINTSTRUCT ps;
 		HDC hdc = BeginPaint(hwnd_record, &ps);
 		// TODO: 在此处添加使用 hdc 的任何绘图代码...
+		HDC  hMemDC = CreateCompatibleDC(hdc);
+		HBITMAP hBmp = (HBITMAP)LoadImage(NULL, L"bg_record.bmp", IMAGE_BITMAP, 800, 800, LR_LOADFROMFILE);
+		SelectObject(hMemDC, hBmp);
+
+		SetStretchBltMode(hdc, HALFTONE);
+
+		
+		StretchBlt(hdc, 0, 0, 1000, 1000, hMemDC, 0, 0, 800, 800, SRCCOPY);
+		DeleteObject(hBmp);
+		DeleteDC(hMemDC);
+
 		EndPaint(hwnd_record, &ps);
 	}
 	break;
@@ -739,15 +770,8 @@ LRESULT CALLBACK WndProc_record(HWND hwnd_record, UINT message, WPARAM wParam, L
 		CreateWindow(
 			TEXT("button"), TEXT("返回主菜单"),
 			WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-			750, 500, 85, 26,
+			750, 715, 100, 50,
 			hwnd_record, (HMENU)RECORDING_BACK, hInst, NULL
-		);
-		//显示游戏记录
-		CreateWindow(
-			TEXT("static"), TEXT("返回主菜单1234567890"),
-			WS_CHILD | WS_VISIBLE | SS_CENTER,
-			550, 500, 85, 26,
-			hwnd_record, (HMENU)99, hInst, NULL
 		);
 		break;
 	}
@@ -761,6 +785,7 @@ LRESULT CALLBACK WndProc_record(HWND hwnd_record, UINT message, WPARAM wParam, L
 		DestroyWindow(hwnd_main);
 		DestroyWindow(hwnd_record);
 		PostQuitMessage(0);
+		::exit(0);//退出程序
 		break;
 	}
 	default:
